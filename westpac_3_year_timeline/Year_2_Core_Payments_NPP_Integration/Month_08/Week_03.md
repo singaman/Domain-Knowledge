@@ -1,32 +1,31 @@
 # Year 2 - Month 8 - Week 3
 
-**Epic Focus:** Complex Locking and Concurrency Management
+**Epic Focus:** Private Commenting System
 
 ## Sprint Goals
-- Prevent multiple Reviewers from simultaneously acting on the exact same Bank Guarantee.
-- Implement Pessimistic/Optimistic database locks.
-- Enhance application stability under high load.
+- Allow Reviewers to leave comments on the Bank Guarantee.
+- Ensure Bankers cannot read "Internal Review Only" comments.
+- Keep comments securely attached to the workflow.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-20201: Optimistic Concurrency Control (ETags)
+### 1. WBC-30194: Create Comments Database Table and API
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Implemented Optimistic Locking using the `version` column in the database schema.
-  - When updating comments or transitioning state, the API checked if the requested `version` matched the database `version`.
-  - Prevented the "Lost Update" problem where a Banker's save action overwrites a Reviewer's simultaneous approval by throwing an Http 412 Precondition Failed.
+  - Created a new `Comments` table in PostgreSQL linking to the `Bank_Guarantees` table via a Foreign Key.
+  - Built the `POST /api/comments` API letting users submit their feedback text.
+  - Sanitized the incoming HTML input before saving to prevent Cross-Site Scripting (XSS) attacks.
 
-### 2. WBC-20202: Reviewer Assignment and Redis Locks
-- **Story Points:** 8
+### 2. WBC-30195: Visibility Flags (Internal Review Only)
+- **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Implemented a "Checkout" feature: When Reviewer 1 opens Bank Guarantee #47, the API sets a distributed Redis lock with a TTL of 15 minutes.
-  - If a second Reviewer 1 tries to open Guarantee #47, the API returns a `423 Locked` response indicating "Currently being reviewed by John Doe".
-  - Built a background Node cron-job to safely release orphaned locks if a reviewer closed their browser tab without clicking "Save".
+  - Added a `visibility_scope` boolean to the database.
+  - If a Reviewer checked the "Internal Review Only" box on the UI, the API saved this boolean flag as true.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for Complex Locking and Concurrency Management.
+- **Backlog Grooming:** Refined upcoming stories for Private Commenting System.

@@ -1,32 +1,31 @@
 # Year 3 - Month 9 - Week 4
 
-**Epic Focus:** System Upgrades & Technical Debt Eradication
+**Epic Focus:** Automation: PDF Document Generation Worker
 
 ## Sprint Goals
-- Upgrade major frameworks and dependencies safely.
-- Enforce deeper security patching.
-- Ensure zero downtime during internal deployments.
+- Automatically assemble the final legal document when approved.
+- Remove the need for Bankers to use Microsoft Word.
+- Stamp digital watermarks.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-20338: Security Vulnerability Remediation (CVEs)
+### 1. WBC-30329: Watermarking and Final S3 Upload
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Integrated `npm audit` and Snyk directly into the CI/CD pipeline.
-  - Patched critical Cross-Site Scripting (XSS) and SQL Injection vulnerabilities identified in regular penetration testing by the Westpac internal red team.
-  - Enforced strict Content-Security-Policy (CSP) and CORS headers entirely via Helmet middleware.
+  - Added digital watermarks and approval timestamps to the footer of the generated PDF.
+  - Streamed the completed legal PDF directly to the AWS S3 vault and notified the Banker via email that their final document was ready for the customer.
 
-### 2. WBC-20339: Zero Downtime Deployment Strategy Implementation
-- **Story Points:** 5
+### 2. WBC-30330: Dynamic HTML to PDF Engine
+- **Story Points:** 8
 - **Status:** Done
 - **Technical Implementation:**
-  - Configured Kubernetes Readiness and Liveness probes to support seamless rolling updates.
-  - Ensured that in-flight Bank Guarantee workflow approvals (e.g., active Database Transactions) completed within a graceful shutdown window before a Pod was terminated.
-  - Documented deployment runbooks minimizing disruption for internal business users.
+  - Utilized `Puppeteer` (Headless Chrome) inside the worker container.
+  - The script fetched the finalized JSON Bank Guarantee data, injected it deeply into a legal HTML template, and converted that HTML directly into a finalized PDF.
+  - Handled varied logic: e.g., if the currency was USD, rendering specific legal clauses dynamically.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for System Upgrades & Technical Debt Eradication.
+- **Backlog Grooming:** Refined upcoming stories for Automation: PDF Document Generation Worker.

@@ -1,40 +1,31 @@
 # Year 1 - Month 12 - Week 2
 
-**Epic Focus:** Data Visibility and Private Commenting System
+**Epic Focus:** File Uploads: Attaching Documents to Guarantees
 
 ## Sprint Goals
-- Allow multi-user collaboration to exist safely within the same application.
-- Implement private commenting visible only to specific roles.
-- Develop notification triggers.
+- Allow Bankers to upload huge PDF legal documents.
+- Ensure Node.js does not crash from memory spikes.
+- Secure the documents in AWS S3.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-20118: Workflow Asynchronous Notifications via Kafka
-- **Story Points:** 3
-- **Status:** Done
-- **Technical Implementation:**
-  - When a Bank Guarantee transitioned to `PENDING_R1`, published a Kafka event (`GuaranteeAssigned`).
-  - A separate consumer microservice picked up this event to trigger internal Westpac emails notifying Reviewer 1 that they had a pending task.
-  - Ensured the event publisher was resilient, using at-least-once delivery mechanisms.
-
-### 2. WBC-20119: Private Commenting API Endpoint
+### 1. WBC-30116: Multipart/Form-Data API Endpoint
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Built a `POST /api/guarantees/:id/comments` endpoint allowing Bankers and Reviewers to leave remarks.
-  - Added a `visibility_scope` boolean to comments. Reviewers could check a box to mark their comment as "Internal Review Only".
-  - Stored the HTML-sanitized comment payload safely in the database to prevent XSS (Cross-Site Scripting).
+  - Built an API utilizing `multer` (or similar) to accept incoming PDF files attached to a specific Bank Guarantee ID.
+  - Wrote file validation logic checking the Mime-Type to ensure users only uploaded exact PDFs and not dangerous `.exe` files.
 
-### 3. WBC-20120: Role-Based Comment Filtering (GET)
-- **Story Points:** 5
+### 2. WBC-30117: Streaming Uploads to AWS S3
+- **Story Points:** 8
 - **Status:** Done
 - **Technical Implementation:**
-  - Implemented complex filtering within the `GET /api/guarantees/:id` payload response.
-  - If a Banker (Role = Banker) fetched the Bank Guarantee history, the Node.js API explicitly stripped out any comments flagged as "Internal Review Only".
-  - If a Reviewer fetched the same Guarantee, they received the full unabridged array of comments.
+  - Integrated the AWS SDK into the Node.js backend.
+  - Instead of loading a 20MB file entirely into Node.js heap memory, implemented Node Streams to pipe the file directly to Westpac's internal S3 bucket.
+  - Stored the S3 `ObjectKey` URL in the PostgreSQL database.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for Data Visibility and Private Commenting System.
+- **Backlog Grooming:** Refined upcoming stories for File Uploads: Attaching Documents to Guarantees.

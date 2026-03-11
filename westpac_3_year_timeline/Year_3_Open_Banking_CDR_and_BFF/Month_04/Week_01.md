@@ -1,40 +1,37 @@
 # Year 3 - Month 4 - Week 1
 
-**Epic Focus:** Legacy System Integration & Data Synchronization
+**Epic Focus:** Performance Optimization: Dynamic Dashboards
 
 ## Sprint Goals
-- Sync approved Bank Guarantees with legacy mainframe ledgers.
-- Ensure exactly-once message delivery.
-- Handle transient legacy system failures smoothly.
+- Speed up the loading time of the massive Reviewer dashboards.
+- Fix database N+1 querying issues causing slowness.
+- Aggregate data properly.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-20278: Circuit Breakers for Outbound Legacy Calls
+### 1. WBC-30272: Backend-For-Frontend (BFF) Aggregation
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Implemented the Circuit Breaker pattern using `opossum` around the SOAP XML calls made to the legacy Customer Information System (CIS).
-  - If CIS experienced an outage, the API buffered the approval requests into a RabbitMQ queue for deferred processing, rather than returning HTTP 500s to the Reviewer.
-  - Added automated recovery polling algorithms when circuits flipped to a "half-open" state.
+  - The React dashboard was making 5 slow API calls to load the Bank Guarantee list, user profiles, and document metadata.
+  - Built an aggregation API layer (using optimized SQL JOINs or a GraphQL layer) into a single optimized payload.
+  - Reduced the overall dashboard loading time from 3 seconds down to 800 milliseconds.
 
-### 2. WBC-20279: Mainframe Synchronization Service
+### 2. WBC-30273: Fixing the N+1 Query Problem
 - **Story Points:** 8
 - **Status:** Done
 - **Technical Implementation:**
-  - Built an Anti-Corruption Layer (microservice) mapping the modern JSON Bank Guarantee payload into fixed-width EBCDIC files required by the legacy Hogan core.
-  - Scheduled daily synchronization batch jobs using Node.js `node-cron` fetching all guarantees moved to `COMPLETED` that day.
-  - Generated unique correlation IDs to verify end-to-end processing across modern and legacy boundaries.
+  - Identified that fetching 100 Bank Guarantees was causing the API to make 100 separate Database queries to fetch the "Assignee User Profile" for each row.
+  - Implemented a `dataloader` (or batching SQL queries using `WHERE id IN (...)`) to collapse the 100 queries down to just 2 efficient queries.
 
-### 3. WBC-20280: Automated E2E Workflow Testing
+### 3. WBC-30274: Pagination and Searching
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Wrote extensive Jest and Supertest suites mocking the entire Bank Guarantee lifecycle.
-  - Automated contract testing: Submit (Banker) -> Approve (R1) -> Approve (R2) -> Validate Audit Logs -> Ensure PDF Generated.
-  - Integrated these heavy E2E suites into the GitHub Actions CI/CD pipeline blocking pull requests if any workflow state constraint failed.
+  - Optimized database indexes to allow Reviewers to quickly perform partial text-searches on "Customer Names" or filter by "Urgency" without causing full-table scans.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for Legacy System Integration & Data Synchronization.
+- **Backlog Grooming:** Refined upcoming stories for Performance Optimization: Dynamic Dashboards.

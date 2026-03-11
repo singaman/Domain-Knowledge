@@ -1,40 +1,38 @@
 # Year 2 - Month 4 - Week 4
 
-**Epic Focus:** Document Vault & Internal Storage Integrations
+**Epic Focus:** The Workflow Engine: Strict State Transitions
 
 ## Sprint Goals
-- Securely attach internal risk assessments to Bank Guarantees.
-- Restrict document download capabilities based on workflow state.
-- Prevent sensitive legal documents from memory leaks.
+- Force the Bank Guarantee to move in a rigid path.
+- Prevent a document from skipping the Reviewer 1 phase.
+- Handle Approval and Rejection logic.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-20163: Role-Restricted Document Download (Pre-Signed URLs)
+### 1. WBC-30158: State Transition Validator Logic
 - **Story Points:** 8
 - **Status:** Done
 - **Technical Implementation:**
-  - Implemented download API logic: Verify the user downloading the risk document actually had "read" access to that specific Guarantee ID.
-  - Generated temporary, short-lived (5 min) S3 Pre-signed URLs for authenticated users instead of proxying massive binaries through Node.
-  - Logged all document access events to Splunk for internal compliance monitoring.
+  - Built the brain of the workflow engine. When Reviewer 1 clicks approve, the Node.js API queries the database first.
+  - Checked: Is `current_status == "PENDING_REVIEWER_1"`? If yes, update it to `PENDING_REVIEWER_2`.
+  - If the status was wrong, the API forcefully aborted the action throwing an `Invalid State Transition` error.
 
-### 2. WBC-20164: ClamAV Malware Scanning Middleware
-- **Story Points:** 3
-- **Status:** Done
-- **Technical Implementation:**
-  - Integrated a ClamAV daemon using gRPC. Whenever a Banker uploaded a supporting document, it was pushed into a buffer queue.
-  - The file was scanned asynchronously for malware before the state of the document was marked `SAFE_FOR_REVIEW`.
-  - Blocked Reviewers from downloading documents marked as `PENDING_SCAN`.
-
-### 3. WBC-20165: AWS S3 Document Upload API for Bank Guarantees
+### 2. WBC-30159: Rejection and Feedback Loop
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Built a Node.js streaming API accepting multipart/form-data specifically for legal contracts and risk assessments attached to a Guarantee.
-  - Piped the stream directly into an internal Westpac S3 bucket, preventing memory saturation on the Node horizontal pod.
-  - Saved the document metadata (S3 Object Key, size, uploader) into the relational database.
+  - Built the `PATCH /api/guarantees/:id/reject` endpoint.
+  - If a reviewer rejected a document for having bad details, it transitioned strictly backward to the `DRAFT` status and immediately un-assigned the reviewer.
+
+### 3. WBC-30160: Workflow Assignment API
+- **Story Points:** 5
+- **Status:** Done
+- **Technical Implementation:**
+  - Wrote the logic to assign a Bank Guarantee to a specific Reviewer.
+  - Updated the database to mark `assigned_to = "John Doe"` so no other reviewer could accidentally approve the exact same document simultaneously.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for Document Vault & Internal Storage Integrations.
+- **Backlog Grooming:** Refined upcoming stories for The Workflow Engine: Strict State Transitions.

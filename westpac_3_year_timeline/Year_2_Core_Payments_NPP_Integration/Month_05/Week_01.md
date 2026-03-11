@@ -1,40 +1,38 @@
 # Year 2 - Month 5 - Week 1
 
-**Epic Focus:** Complex Locking and Concurrency Management
+**Epic Focus:** Private Commenting System
 
 ## Sprint Goals
-- Prevent multiple Reviewers from simultaneously acting on the exact same Bank Guarantee.
-- Implement Pessimistic/Optimistic database locks.
-- Enhance application stability under high load.
+- Allow Reviewers to leave comments on the Bank Guarantee.
+- Ensure Bankers cannot read "Internal Review Only" comments.
+- Keep comments securely attached to the workflow.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-20166: Caching Common Dictionary/Dropdown Data
-- **Story Points:** 3
-- **Status:** Done
-- **Technical Implementation:**
-  - Implemented Redis caching for static dropdown data used across the Bank Guarantee forms (e.g., "Guarantee Types", "Approved Currency Codes").
-  - Reduced load on the PostgreSQL database for highly read, rarely mutated configuration tables.
-  - Added immediate cache invalidation whenever a system admin added a new Guarantee Type.
-
-### 2. WBC-20167: Optimistic Concurrency Control (ETags)
+### 1. WBC-30161: Create Comments Database Table and API
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Implemented Optimistic Locking using the `version` column in the database schema.
-  - When updating comments or transitioning state, the API checked if the requested `version` matched the database `version`.
-  - Prevented the "Lost Update" problem where a Banker's save action overwrites a Reviewer's simultaneous approval by throwing an Http 412 Precondition Failed.
+  - Created a new `Comments` table in PostgreSQL linking to the `Bank_Guarantees` table via a Foreign Key.
+  - Built the `POST /api/comments` API letting users submit their feedback text.
+  - Sanitized the incoming HTML input before saving to prevent Cross-Site Scripting (XSS) attacks.
 
-### 3. WBC-20168: Reviewer Assignment and Redis Locks
+### 2. WBC-30162: Visibility Flags (Internal Review Only)
+- **Story Points:** 5
+- **Status:** Done
+- **Technical Implementation:**
+  - Added a `visibility_scope` boolean to the database.
+  - If a Reviewer checked the "Internal Review Only" box on the UI, the API saved this boolean flag as true.
+
+### 3. WBC-30163: Role-Filtered Dashboard API
 - **Story Points:** 8
 - **Status:** Done
 - **Technical Implementation:**
-  - Implemented a "Checkout" feature: When Reviewer 1 opens Bank Guarantee #47, the API sets a distributed Redis lock with a TTL of 15 minutes.
-  - If a second Reviewer 1 tries to open Guarantee #47, the API returns a `423 Locked` response indicating "Currently being reviewed by John Doe".
-  - Built a background Node cron-job to safely release orphaned locks if a reviewer closed their browser tab without clicking "Save".
+  - Heavily modified the `GET /api/guarantees/:id` endpoint which fetched the full history.
+  - If the decoded JWT token belonged to a `Banker`, my Node.js logic explicitly filtered out (removed) any comments flagged as "Internal Review Only" before returning the JSON payload to the frontend, ensuring data privacy.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for Complex Locking and Concurrency Management.
+- **Backlog Grooming:** Refined upcoming stories for Private Commenting System.

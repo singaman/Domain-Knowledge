@@ -1,32 +1,31 @@
 # Year 1 - Month 11 - Week 4
 
-**Epic Focus:** Data Visibility and Private Commenting System
+**Epic Focus:** File Uploads: Attaching Documents to Guarantees
 
 ## Sprint Goals
-- Allow multi-user collaboration to exist safely within the same application.
-- Implement private commenting visible only to specific roles.
-- Develop notification triggers.
+- Allow Bankers to upload huge PDF legal documents.
+- Ensure Node.js does not crash from memory spikes.
+- Secure the documents in AWS S3.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-20113: Workflow Asynchronous Notifications via Kafka
-- **Story Points:** 3
+### 1. WBC-30112: Streaming Uploads to AWS S3
+- **Story Points:** 8
 - **Status:** Done
 - **Technical Implementation:**
-  - When a Bank Guarantee transitioned to `PENDING_R1`, published a Kafka event (`GuaranteeAssigned`).
-  - A separate consumer microservice picked up this event to trigger internal Westpac emails notifying Reviewer 1 that they had a pending task.
-  - Ensured the event publisher was resilient, using at-least-once delivery mechanisms.
+  - Integrated the AWS SDK into the Node.js backend.
+  - Instead of loading a 20MB file entirely into Node.js heap memory, implemented Node Streams to pipe the file directly to Westpac's internal S3 bucket.
+  - Stored the S3 `ObjectKey` URL in the PostgreSQL database.
 
-### 2. WBC-20114: Role-Based Comment Filtering (GET)
+### 2. WBC-30113: Secure Document Download API
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Implemented complex filtering within the `GET /api/guarantees/:id` payload response.
-  - If a Banker (Role = Banker) fetched the Bank Guarantee history, the Node.js API explicitly stripped out any comments flagged as "Internal Review Only".
-  - If a Reviewer fetched the same Guarantee, they received the full unabridged array of comments.
+  - Built a `GET /api/documents/:id` endpoint for Reviewers to read the uploaded PDFs.
+  - Instead of proxying the large binary file back through Node.js, generated temporary, short-lived "Pre-Signed S3 URLs" to give the Reviewer direct but secure access.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for Data Visibility and Private Commenting System.
+- **Backlog Grooming:** Refined upcoming stories for File Uploads: Attaching Documents to Guarantees.

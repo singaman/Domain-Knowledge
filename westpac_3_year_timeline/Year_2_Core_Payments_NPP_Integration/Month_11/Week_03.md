@@ -1,40 +1,38 @@
 # Year 2 - Month 11 - Week 3
 
-**Epic Focus:** Reporting & Guarantee Generation
+**Epic Focus:** Compliance and Audit Logging
 
 ## Sprint Goals
-- Automatically assemble PDF legal documents based on approved workflow data.
-- Generate compliance reports for management.
-- Export Bank Guarantee data to legacy systems.
+- Track every single change made to a Bank Guarantee.
+- Ensure the actual status update AND the log update happen simultaneously.
+- Provide history reports.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-20231: PDF Generation from Approved Guarantees
-- **Story Points:** 5
-- **Status:** Done
-- **Technical Implementation:**
-  - When a guarantee reached the `COMPLETED` state, a Kafka event triggered a worker service.
-  - Utilized `Puppeteer` (or PDFKit) inside Node.js to dynamically generate the official legal Bank Guarantee document based on an HTML template populated with the database payload.
-  - Stamped the generated PDF with watermarks and a digital signature hash.
-
-### 2. WBC-20232: Metrics and APM (Datadog) Instrumentation
+### 1. WBC-30226: Audit Log Schema Design
 - **Story Points:** 3
 - **Status:** Done
 - **Technical Implementation:**
-  - Instrumented all mission-critical workflow transition endpoints thoroughly using Datadog APM tracing.
-  - Set up performance alerts if the `Approve` API latency breached 1.5 seconds, specifically monitoring the time taken by the atomic transaction and audit log inserts.
-  - Tracked "Invalid State Transition" 400 errors to identify frontend application bugs.
+  - Created a strictly insert-only `Audit_Logs` table.
+  - Captured the timestamp, the User ID performing the action, the `Old_State`, and the `New_State`.
 
-### 3. WBC-20233: Multi-Role Search and Reporting Aggregation API
+### 2. WBC-30227: Atomic Database Transactions
 - **Story Points:** 8
 - **Status:** Done
 - **Technical Implementation:**
-  - Built robust reporting APIs for management users hitting MongoDB analytical read-replicas.
-  - Used the MongoDB Aggregation Pipeline to generate reports like "Average Time Spent in PENDING_R1 Status" and "Total Dollar Value of Guarantees Issued this Month".
-  - Secured the API with pagination and query timeouts to prevent heavy analytical queries from degrading the primary API performance.
+  - Wrapped the workflow approval updates using SQL Database Transactions (`BEGIN...COMMIT`).
+  - Ensured that updating the guarantee to `Completed` AND inserting the `Audit_Log` row happened simultaneously.
+  - If the Audit log failed to save, the transaction rolled back entirely, ensuring regulatory compliance was never breached.
+
+### 3. WBC-30228: History Fetching endpoint
+- **Story Points:** 5
+- **Status:** Done
+- **Technical Implementation:**
+  - Built an API for Managers to fetch the complete chronological audit history of a guarantee from creation to completion.
+  - Added cursor-based pagination to handle cases where a heavily-debated guarantee had hundreds of historical log entries.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for Reporting & Guarantee Generation.
+- **Backlog Grooming:** Refined upcoming stories for Compliance and Audit Logging.

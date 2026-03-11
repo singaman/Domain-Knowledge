@@ -1,32 +1,29 @@
 # Year 3 - Month 7 - Week 3
 
-**Epic Focus:** Scaling the Application and GraphQL BFF Optimization
+**Epic Focus:** Caching Common Data using Redis
 
 ## Sprint Goals
-- Transition the massive internal Dashboard API to GraphQL.
-- Fix N+1 query problems hurting dashboard loading times.
-- Serve aggregated stats seamlessly.
+- Stop bombarding PostgreSQL with requests that rarely change.
+- Store "Dropdown menus" into fast-memory.
+- Reduce overall latency.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-20315: Read Heavy Performance Tuning
-- **Story Points:** 3
-- **Status:** Done
-- **Technical Implementation:**
-  - Re-architected the `TypeORM` connection pooling to route graphQL queries exclusively to the Postgres Read-Replicas.
-  - Analyzed slow query logs and added compound indexes mapping `status` and `assigned_reviewer_id`.
-  - Configured Node.js horizontal pod autoscaling (HPA) in Kubernetes based on CPU utilization.
-
-### 2. WBC-20316: Dataloader for N+1 Query Resolution
+### 1. WBC-30304: Session and Temporary Data Storage
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Identified the classic GraphQL N+1 problem when fetching the User Profile (Name/Email) for every Reviewer assigned to a dashboard list of 100 guarantees.
-  - Integrated `dataloader` to batch and deduplicate underlying database queries, collapsing 100 User SQL queries into a single `SELECT * FROM Users WHERE id IN (...)`.
-  - Improved dashboard API responsiveness by 60% under peak load.
+  - Utilized Redis to store UI View-states so when a Banker navigated away from a massive form and came back, they did not lose their draft data, saving it automatically every minute.
+
+### 2. WBC-30305: Redis Implementation for Configuration Data
+- **Story Points:** 5
+- **Status:** Done
+- **Technical Implementation:**
+  - Integrated Node.js with a Redis cluster to serve static data used constantly by the forms (e.g., list of Approved Currencies, Guarantee Limits).
+  - Drastically reduced database overhead by serving this data directly from memory in 5ms.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for Scaling the Application and GraphQL BFF Optimization.
+- **Backlog Grooming:** Refined upcoming stories for Caching Common Data using Redis.
