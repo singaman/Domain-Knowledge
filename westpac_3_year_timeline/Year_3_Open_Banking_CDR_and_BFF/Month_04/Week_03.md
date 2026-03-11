@@ -1,40 +1,40 @@
 # Year 3 - Month 4 - Week 3
 
-**Epic Focus:** CDR Account & Transaction APIs (Read-Only)
+**Epic Focus:** Legacy System Integration & Data Synchronization
 
 ## Sprint Goals
-- Implement standards mandated by the Australian Data Standards Body.
-- Serve massive amounts of transaction history efficiently.
-- Ensure strict uptime and performance SLAs.
+- Sync approved Bank Guarantees with legacy mainframe ledgers.
+- Ensure exactly-once message delivery.
+- Handle transient legacy system failures smoothly.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-10281: Data Masking and Transformation Layer
+### 1. WBC-20284: Circuit Breakers for Outbound Legacy Calls
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Implemented response interceptors to strip out internal bank reference codes and format the output entirely to the open banking DSB specification.
-  - Masked standard account numbers (BSB/Account) replacing them with unique masked identifiers as required.
-  - Wrote automated contract tests using Postman/Newman to verify DSB schema compliance.
+  - Implemented the Circuit Breaker pattern using `opossum` around the SOAP XML calls made to the legacy Customer Information System (CIS).
+  - If CIS experienced an outage, the API buffered the approval requests into a RabbitMQ queue for deferred processing, rather than returning HTTP 500s to the Reviewer.
+  - Added automated recovery polling algorithms when circuits flipped to a "half-open" state.
 
-### 2. WBC-10282: High-Availability Database Read Replicas
-- **Story Points:** 3
+### 2. WBC-20285: Automated E2E Workflow Testing
+- **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Configured the TypeORM connections to direct all Open Banking read traffic to dedicated read-replicas, isolating analytical load from core banking transactions.
-  - Implemented logic to handle replica-lag scenarios and fallback mechanisms.
-  - Monitored database connection pools strictly to avoid exhausting max connections during traffic spikes.
+  - Wrote extensive Jest and Supertest suites mocking the entire Bank Guarantee lifecycle.
+  - Automated contract testing: Submit (Banker) -> Approve (R1) -> Approve (R2) -> Validate Audit Logs -> Ensure PDF Generated.
+  - Integrated these heavy E2E suites into the GitHub Actions CI/CD pipeline blocking pull requests if any workflow state constraint failed.
 
-### 3. WBC-10283: Cursor-Based Pagination for Transaction Ledger
+### 3. WBC-20286: Mainframe Synchronization Service
 - **Story Points:** 8
 - **Status:** Done
 - **Technical Implementation:**
-  - Replaced offset-based pagination with high-performance cursor-based pagination to serve accounts with 10,000+ transactions without degrading database performance.
-  - Serialized the `last_transaction_id` and `timestamp` into base64 encoded cursor tokens.
-  - Optimized PostgreSQL indexes on date and account_id to support complex filtering queries mandated by CDR.
+  - Built an Anti-Corruption Layer (microservice) mapping the modern JSON Bank Guarantee payload into fixed-width EBCDIC files required by the legacy Hogan core.
+  - Scheduled daily synchronization batch jobs using Node.js `node-cron` fetching all guarantees moved to `COMPLETED` that day.
+  - Generated unique correlation IDs to verify end-to-end processing across modern and legacy boundaries.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for CDR Account & Transaction APIs (Read-Only).
+- **Backlog Grooming:** Refined upcoming stories for Legacy System Integration & Data Synchronization.

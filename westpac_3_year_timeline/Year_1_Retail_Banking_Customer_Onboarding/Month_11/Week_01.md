@@ -1,32 +1,40 @@
 # Year 1 - Month 11 - Week 1
 
-**Epic Focus:** Secure Document Upload & Virus Scanning
+**Epic Focus:** Data Visibility and Private Commenting System
 
 ## Sprint Goals
-- Enable secure streaming of customer trailing documents (payslips, passports).
-- Ensure no malicious payloads enter the Westpac network.
-- Optimize memory usage for large PDF files.
+- Allow multi-user collaboration to exist safely within the same application.
+- Implement private commenting visible only to specific roles.
+- Develop notification triggers.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-10103: Performance Tuning & Memory Leak Profiling
+### 1. WBC-20104: Workflow Asynchronous Notifications via Kafka
 - **Story Points:** 3
 - **Status:** Done
 - **Technical Implementation:**
-  - Used Node Clinic and heapdump to identify and resolve memory leaks in the document upload streams.
-  - Refactored streams to properly attach 'error' and 'close' event listeners, preventing dangling file descriptors.
-  - Reduced median upload latency for a 5MB payload from 4s down to 1.5s caching temporary streams in memory.
+  - When a Bank Guarantee transitioned to `PENDING_R1`, published a Kafka event (`GuaranteeAssigned`).
+  - A separate consumer microservice picked up this event to trigger internal Westpac emails notifying Reviewer 1 that they had a pending task.
+  - Ensured the event publisher was resilient, using at-least-once delivery mechanisms.
 
-### 2. WBC-10104: ClamAV Virus Scanning Integration vGRPC
+### 2. WBC-20105: Role-Based Comment Filtering (GET)
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Integrated a ClamAV microservice via gRPC to scan uploaded documents for malware.
-  - Implemented a webhook callback system to notify the frontend when a file was marked "SAFE" or "QUARANTINED".
-  - Blocked processing of documents with dangerous mime-types or mismatched file signatures.
+  - Implemented complex filtering within the `GET /api/guarantees/:id` payload response.
+  - If a Banker (Role = Banker) fetched the Bank Guarantee history, the Node.js API explicitly stripped out any comments flagged as "Internal Review Only".
+  - If a Reviewer fetched the same Guarantee, they received the full unabridged array of comments.
+
+### 3. WBC-20106: Private Commenting API Endpoint
+- **Story Points:** 5
+- **Status:** Done
+- **Technical Implementation:**
+  - Built a `POST /api/guarantees/:id/comments` endpoint allowing Bankers and Reviewers to leave remarks.
+  - Added a `visibility_scope` boolean to comments. Reviewers could check a box to mark their comment as "Internal Review Only".
+  - Stored the HTML-sanitized comment payload safely in the database to prevent XSS (Cross-Site Scripting).
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for Secure Document Upload & Virus Scanning.
+- **Backlog Grooming:** Refined upcoming stories for Data Visibility and Private Commenting System.

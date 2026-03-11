@@ -1,32 +1,40 @@
 # Year 2 - Month 12 - Week 4
 
-**Epic Focus:** Real-time Fraud Interceptor & Actimize Integration
+**Epic Focus:** Reporting & Guarantee Generation
 
 ## Sprint Goals
-- Detect and block scams in real-time.
-- Asynchronously process payment risk scoring.
-- Provide operators the ability to lift "Debit Holds".
+- Automatically assemble PDF legal documents based on approved workflow data.
+- Generate compliance reports for management.
+- Export Bank Guarantee data to legacy systems.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-10242: Fraud Async Webhook Consumer & Debit Holds
-- **Story Points:** 8
+### 1. WBC-20243: Metrics and APM (Datadog) Instrumentation
+- **Story Points:** 3
 - **Status:** Done
 - **Technical Implementation:**
-  - Exposed a secure webhook endpoint for the Fraud Engine (Actimize) to push back real-time risk scores.
-  - If the score crossed the high-risk threshold, automatically placed a "Debit Hold" block on the underlying transaction record in PostgreSQL.
-  - Sent a push notification trigger to the customer to verify the sketchy payment via the Westpac App (2FA step-up).
+  - Instrumented all mission-critical workflow transition endpoints thoroughly using Datadog APM tracing.
+  - Set up performance alerts if the `Approve` API latency breached 1.5 seconds, specifically monitoring the time taken by the atomic transaction and audit log inserts.
+  - Tracked "Invalid State Transition" 400 errors to identify frontend application bugs.
 
-### 2. WBC-10243: Operator Override API for Call Center
+### 2. WBC-20244: PDF Generation from Approved Guarantees
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Developed an internal administrative REST API for the Fraud Call Center to manually override and release "Debit Holds".
-  - Stored audit trails of which operator released the hold for compliance purposes.
-  - Implemented strict Role-Based Access Control (RBAC) ensuring only high-level analysts could use the endpoint.
+  - When a guarantee reached the `COMPLETED` state, a Kafka event triggered a worker service.
+  - Utilized `Puppeteer` (or PDFKit) inside Node.js to dynamically generate the official legal Bank Guarantee document based on an HTML template populated with the database payload.
+  - Stamped the generated PDF with watermarks and a digital signature hash.
+
+### 3. WBC-20245: Multi-Role Search and Reporting Aggregation API
+- **Story Points:** 8
+- **Status:** Done
+- **Technical Implementation:**
+  - Built robust reporting APIs for management users hitting MongoDB analytical read-replicas.
+  - Used the MongoDB Aggregation Pipeline to generate reports like "Average Time Spent in PENDING_R1 Status" and "Total Dollar Value of Guarantees Issued this Month".
+  - Secured the API with pagination and query timeouts to prevent heavy analytical queries from degrading the primary API performance.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for Real-time Fraud Interceptor & Actimize Integration.
+- **Backlog Grooming:** Refined upcoming stories for Reporting & Guarantee Generation.

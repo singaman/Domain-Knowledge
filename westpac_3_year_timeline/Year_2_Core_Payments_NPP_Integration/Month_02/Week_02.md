@@ -1,40 +1,32 @@
 # Year 2 - Month 2 - Week 2
 
-**Epic Focus:** PayID Lookup and Resolution API
+**Epic Focus:** Document Vault & Internal Storage Integrations
 
 ## Sprint Goals
-- Integrate with the central NPP addressing service.
-- Provide low-latency resolution of PayIDs to account names.
-- Protect against malicious directory harvesting attacks.
+- Securely attach internal risk assessments to Bank Guarantees.
+- Restrict document download capabilities based on workflow state.
+- Prevent sensitive legal documents from memory leaks.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-10136: NPP Central Service Integration
+### 1. WBC-20139: ClamAV Malware Scanning Middleware
+- **Story Points:** 3
+- **Status:** Done
+- **Technical Implementation:**
+  - Integrated a ClamAV daemon using gRPC. Whenever a Banker uploaded a supporting document, it was pushed into a buffer queue.
+  - The file was scanned asynchronously for malware before the state of the document was marked `SAFE_FOR_REVIEW`.
+  - Blocked Reviewers from downloading documents marked as `PENDING_SCAN`.
+
+### 2. WBC-20140: AWS S3 Document Upload API for Bank Guarantees
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Wrote robust HTTP clients with exponential backoff to handle transient network issues with the central NPP addressing service.
-  - Masked partial phone numbers and emails in the response to comply with Westpac privacy standards.
-  - Added extensive endpoint monitoring using Datadog APM.
-
-### 2. WBC-10137: Redis Caching Layer for PayID Resolution
-- **Story Points:** 5
-- **Status:** Done
-- **Technical Implementation:**
-  - Implemented a Redis caching layer using Node.js to store resolved PayIDs with a short TTL (Time-To-Live).
-  - Designed cache-fallback logic: hit Redis first, on cache-miss query the central NPP service, then populate Redis.
-  - Used Redis pipelines to batch multiple lookup requests from bulk payment files.
-
-### 3. WBC-10138: Sliding-Window Rate Limiting System
-- **Story Points:** 8
-- **Status:** Done
-- **Technical Implementation:**
-  - Built a sliding-window rate limiter in Redis using Lua scripts to block directory harvesting (bots guessing phone numbers).
-  - Configured tiered rate limits based on IP and User ID (e.g., max 5 lookups per minute).
-  - Emitted security alerts to Splunk when rate limits were breached to notify the SOC (Security Operations Center).
+  - Built a Node.js streaming API accepting multipart/form-data specifically for legal contracts and risk assessments attached to a Guarantee.
+  - Piped the stream directly into an internal Westpac S3 bucket, preventing memory saturation on the Node horizontal pod.
+  - Saved the document metadata (S3 Object Key, size, uploader) into the relational database.
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for PayID Lookup and Resolution API.
+- **Backlog Grooming:** Refined upcoming stories for Document Vault & Internal Storage Integrations.

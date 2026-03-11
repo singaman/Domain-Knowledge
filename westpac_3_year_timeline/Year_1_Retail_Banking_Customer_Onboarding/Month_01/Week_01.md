@@ -1,32 +1,32 @@
 # Year 1 - Month 1 - Week 1
 
-**Epic Focus:** Digital Identity Verification (KYC/AML) API
+**Epic Focus:** Core Architecture & Role-Based Access Control (RBAC)
 
 ## Sprint Goals
-- Implement core KYC checks using third-party providers (Equifax/GreenID).
-- Ensure strict adherence to AML regulations.
-- Build asynchronous event queues for long-running verification processes.
+- Set up the Node.js API foundation for the Bank Guarantee application.
+- Implement rigorous authentication and Multi-Role Access Control.
+- Ensure secure internal Single Sign-On (SSO) integration.
 
 ## Jira Stories & Tasks Worked On
 
-### 1. WBC-10001: RabbitMQ Integration for Async KYC Verification
+### 1. WBC-20001: Design and Implement JWT/RBAC Middleware
 - **Story Points:** 8
 - **Status:** Done
 - **Technical Implementation:**
-  - Integrated RabbitMQ using amqplib to queue identity verification requests so the mobile app wouldn't hang on slow responses.
-  - Implemented logic to route "partial match" identity checks to a dedicated "Manual Review" queue for operations staff.
-  - Set up dead-letter exchanges (DLX) for failed KYC messages.
+  - Built custom Express.js middleware to decode internal Westpac SSO JWT tokens.
+  - Extracted the user role (Banker, Reviewer_1, Reviewer_2) directly from the token payload.
+  - Implemented an ACL (Access Control List) guard to ensure Bankers could not access Reviewer approval endpoints, returning 403 Forbidden for unauthorized access attempts.
 
-### 2. WBC-10002: Database Schema Design for Customer Onboarding States
+### 2. WBC-20002: Dynamic Dashboard BFF API
 - **Story Points:** 5
 - **Status:** Done
 - **Technical Implementation:**
-  - Designed PostgreSQL schemas (using TypeORM) to track the state of a customer onboarding application (e.g., PENDING, APPROVED, REJECTED).
-  - Stored audit logs of all state transitions to satisfy regulatory compliance requirements.
-  - Masked PII (Personally Identifiable Information) before storing sensitive documents.
+  - Developed a Backend-For-Frontend (BFF) GET endpoint serving the user's working dashboard.
+  - Implemented business logic to dynamically return `allowedActions` (e.g., ["Submit", "Save Draft"]) based on both the user's decoded role and the current workflow state of the guarantee.
+  - Supported complex filtering, allowing Reviewers to search assigned guarantees by "Urgency" and "Customer Name".
 
 ## Agile Ceremonies Attended
 - **Daily Standup:** 15 mins daily (Reported on what I did yesterday, what I will do today, and any technical blockers).
 - **Sprint Planning:** 2 hours at the start of the week (Estimated story points using planning poker).
 - **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).
-- **Backlog Grooming:** Refined upcoming stories for Digital Identity Verification (KYC/AML) API.
+- **Backlog Grooming:** Refined upcoming stories for Core Architecture & Role-Based Access Control (RBAC).

@@ -9,114 +9,114 @@ const timelineData = {
         topics: [
             {
                 months: [1, 2, 3, 4],
-                epic: 'Digital Identity Verification (KYC/AML) API',
+                epic: 'Core Architecture & Role-Based Access Control (RBAC)',
                 goals: [
-                    '- Implement core KYC checks using third-party providers (Equifax/GreenID).',
-                    '- Ensure strict adherence to AML regulations.',
-                    '- Build asynchronous event queues for long-running verification processes.'
+                    '- Set up the Node.js API foundation for the Bank Guarantee application.',
+                    '- Implement rigorous authentication and Multi-Role Access Control.',
+                    '- Ensure secure internal Single Sign-On (SSO) integration.'
                 ],
                 tasks: [
                     {
-                        title: 'Design and Implement KYC Provider Interfaces',
-                        points: 5,
-                        implementation: [
-                            'Created TypeScript interfaces for bridging multiple identity providers (Equifax, GreenID).',
-                            'Used NestJS HttpModule to handle outbound REST calls to Equifax endpoints.',
-                            'Built robust error handling to catch timeout errors from external SOAP APIs and initiate retries.'
-                        ]
-                    },
-                    {
-                        title: 'RabbitMQ Integration for Async KYC Verification',
+                        title: 'Design and Implement JWT/RBAC Middleware',
                         points: 8,
                         implementation: [
-                            'Integrated RabbitMQ using amqplib to queue identity verification requests so the mobile app wouldn\'t hang on slow responses.',
-                            'Implemented logic to route "partial match" identity checks to a dedicated "Manual Review" queue for operations staff.',
-                            'Set up dead-letter exchanges (DLX) for failed KYC messages.'
+                            'Built custom Express.js middleware to decode internal Westpac SSO JWT tokens.',
+                            'Extracted the user role (Banker, Reviewer_1, Reviewer_2) directly from the token payload.',
+                            'Implemented an ACL (Access Control List) guard to ensure Bankers could not access Reviewer approval endpoints, returning 403 Forbidden for unauthorized access attempts.'
                         ]
                     },
                     {
-                        title: 'Database Schema Design for Customer Onboarding States',
+                        title: 'Database Schema Design for Multi-Role Entities',
                         points: 5,
                         implementation: [
-                            'Designed PostgreSQL schemas (using TypeORM) to track the state of a customer onboarding application (e.g., PENDING, APPROVED, REJECTED).',
-                            'Stored audit logs of all state transitions to satisfy regulatory compliance requirements.',
-                            'Masked PII (Personally Identifiable Information) before storing sensitive documents.'
+                            'Designed complex relational PostgreSQL schemas using TypeORM (or Prisma).',
+                            'Created tables mapping Bank Guarantee IDs to User IDs, explicitly linking "Assigned Reviewer" relationships.',
+                            'Optimized database indexes on the `status` and `assigned_to` columns for fast dashboard querying.'
+                        ]
+                    },
+                    {
+                        title: 'Dynamic Dashboard BFF API',
+                        points: 5,
+                        implementation: [
+                            'Developed a Backend-For-Frontend (BFF) GET endpoint serving the user\'s working dashboard.',
+                            'Implemented business logic to dynamically return `allowedActions` (e.g., ["Submit", "Save Draft"]) based on both the user\'s decoded role and the current workflow state of the guarantee.',
+                            'Supported complex filtering, allowing Reviewers to search assigned guarantees by "Urgency" and "Customer Name".'
                         ]
                     }
                 ]
             },
             {
                 months: [5, 6, 7, 8],
-                epic: 'Account Provisioning Service & Saga Pattern',
+                epic: 'Bank Guarantee Workflow Engine & State Machine',
                 goals: [
-                    '- Automate bank account creation in the core banking system.',
-                    '- Implement distributed transaction handling using the Saga pattern.',
-                    '- Handle Rollbacks gracefully to prevent data anomalies.'
+                    '- Implement a strict state machine preventing invalid workflow transitions.',
+                    '- Develop the core actions: Submit, Approve, Reject, Needs More Info.',
+                    '- Build out an atomic audit logging mechanism.'
                 ],
                 tasks: [
                     {
-                        title: 'Core Banking API Integration (Hogan / 10x)',
-                        points: 5,
-                        implementation: [
-                            'Built a microservice mapping the onboarding API payload to the legacy core banking system requirements.',
-                            'Used class-validator to ensure all mandatory fields (BSB, Account Type, Customer ID) were present.',
-                            'Implemented an anti-corruption layer to isolate legacy XML formats from our modern JSON REST boundaries.'
-                        ]
-                    },
-                    {
-                        title: 'Implement Saga Pattern for Everyday and Savings Account Creation',
+                        title: 'State Transition API Logic (DRAFT -> PENDING_R1)',
                         points: 8,
                         implementation: [
-                            'Implemented distributed transactions: if the Everyday account succeeded but the Savings account failed, triggered a compensating transaction.',
-                            'Ensured idempotency on the account creation API to avoid creating duplicate bank accounts on network retries.',
-                            'Wrote extensive Jest unit tests to mock failures and verify rollback execution.'
+                            'Built the submission API validating the Bank Guarantee payload against a strict JSON Schema.',
+                            'Evaluated the current state: If the guarantee was in DRAFT, updated the state to PENDING_REVIEWER_1.',
+                            'Threw strict `400 Bad Request` exceptions if an invalid transition was attempted (e.g., trying to Submit an already Completed guarantee).'
                         ]
                     },
                     {
-                        title: 'Debit Card Issuance Trigger',
-                        points: 3,
+                        title: 'Reviewer Approval & Progression Chain',
+                        points: 8,
                         implementation: [
-                            'Published a "CardRequested" event to Kafka once the core banking account was successfully provisioned.',
-                            'Secured the topic using TLS and IAM roles to ensure only authorized listeners could process card issuance.',
-                            'Added metrics tracing (via Prometheus) to measure the end-to-end latency of account provisioning.'
+                            'Developed the core approval endpoints. If Reviewer 1 approved, updated the state to PENDING_REVIEWER_2.',
+                            'If Reviewer 2 approved, transitioned the state to PENDING_BANKER (finalizing stage).',
+                            'Handled Rejection pathways: Reverted the state back to DRAFT or PENDING_BANKER for corrections, clearing temporary assigned reviewers.'
+                        ]
+                    },
+                    {
+                        title: 'Atomic Transactions & Audit Logging',
+                        points: 5,
+                        implementation: [
+                            'Ensured compliance by wrapping state transition updates inside a database transaction (`BEGIN...COMMIT`).',
+                            'Simultaneously inserted an immutable `AuditLog` row tracking the exact Timestamp, User ID, Previous State, and New State alongside every status update.',
+                            'Prevented "dirty reads" during concurrent reviewer actions.'
                         ]
                     }
                 ]
             },
             {
                 months: [9, 10, 11, 12],
-                epic: 'Secure Document Upload & Virus Scanning',
+                epic: 'Data Visibility and Private Commenting System',
                 goals: [
-                    '- Enable secure streaming of customer trailing documents (payslips, passports).',
-                    '- Ensure no malicious payloads enter the Westpac network.',
-                    '- Optimize memory usage for large PDF files.'
+                    '- Allow multi-user collaboration to exist safely within the same application.',
+                    '- Implement private commenting visible only to specific roles.',
+                    '- Develop notification triggers.'
                 ],
                 tasks: [
                     {
-                        title: 'AWS S3 Multipart Document Upload Streaming',
+                        title: 'Private Commenting API Endpoint',
                         points: 5,
                         implementation: [
-                            'Built a Node.js streaming API to pipe large document uploads directly to AWS S3, preventing memory heap crashes.',
-                            'Generated pre-signed URLs to allow the front-end to upload directly, reducing backend load.',
-                            'Stored metadata (file size, mime type, hash) in MongoDB for quick retrieval.'
+                            'Built a `POST /api/guarantees/:id/comments` endpoint allowing Bankers and Reviewers to leave remarks.',
+                            'Added a `visibility_scope` boolean to comments. Reviewers could check a box to mark their comment as "Internal Review Only".',
+                            'Stored the HTML-sanitized comment payload safely in the database to prevent XSS (Cross-Site Scripting).'
                         ]
                     },
                     {
-                        title: 'ClamAV Virus Scanning Integration vGRPC',
+                        title: 'Role-Based Comment Filtering (GET)',
                         points: 5,
                         implementation: [
-                            'Integrated a ClamAV microservice via gRPC to scan uploaded documents for malware.',
-                            'Implemented a webhook callback system to notify the frontend when a file was marked "SAFE" or "QUARANTINED".',
-                            'Blocked processing of documents with dangerous mime-types or mismatched file signatures.'
+                            'Implemented complex filtering within the `GET /api/guarantees/:id` payload response.',
+                            'If a Banker (Role = Banker) fetched the Bank Guarantee history, the Node.js API explicitly stripped out any comments flagged as "Internal Review Only".',
+                            'If a Reviewer fetched the same Guarantee, they received the full unabridged array of comments.'
                         ]
                     },
                     {
-                        title: 'Performance Tuning & Memory Leak Profiling',
+                        title: 'Workflow Asynchronous Notifications via Kafka',
                         points: 3,
                         implementation: [
-                            'Used Node Clinic and heapdump to identify and resolve memory leaks in the document upload streams.',
-                            'Refactored streams to properly attach \'error\' and \'close\' event listeners, preventing dangling file descriptors.',
-                            'Reduced median upload latency for a 5MB payload from 4s down to 1.5s caching temporary streams in memory.'
+                            'When a Bank Guarantee transitioned to `PENDING_R1`, published a Kafka event (`GuaranteeAssigned`).',
+                            'A separate consumer microservice picked up this event to trigger internal Westpac emails notifying Reviewer 1 that they had a pending task.',
+                            'Ensured the event publisher was resilient, using at-least-once delivery mechanisms.'
                         ]
                     }
                 ]
@@ -124,237 +124,239 @@ const timelineData = {
         ]
     },
     2: {
-        dir: 'Year_2_Core_Payments_NPP_Integration',
+        dir: 'Year_2_Core_Payments_NPP_Integration', // Keeping folder names identical to avoid breaking paths
         topics: [
             {
                 months: [1, 2, 3, 4],
-                epic: 'PayID Lookup and Resolution API',
+                epic: 'Document Vault & Internal Storage Integrations',
                 goals: [
-                    '- Integrate with the central NPP addressing service.',
-                    '- Provide low-latency resolution of PayIDs to account names.',
-                    '- Protect against malicious directory harvesting attacks.'
+                    '- Securely attach internal risk assessments to Bank Guarantees.',
+                    '- Restrict document download capabilities based on workflow state.',
+                    '- Prevent sensitive legal documents from memory leaks.'
                 ],
                 tasks: [
                     {
-                        title: 'Redis Caching Layer for PayID Resolution',
+                        title: 'AWS S3 Document Upload API for Bank Guarantees',
                         points: 5,
                         implementation: [
-                            'Implemented a Redis caching layer using Node.js to store resolved PayIDs with a short TTL (Time-To-Live).',
-                            'Designed cache-fallback logic: hit Redis first, on cache-miss query the central NPP service, then populate Redis.',
-                            'Used Redis pipelines to batch multiple lookup requests from bulk payment files.'
+                            'Built a Node.js streaming API accepting multipart/form-data specifically for legal contracts and risk assessments attached to a Guarantee.',
+                            'Piped the stream directly into an internal Westpac S3 bucket, preventing memory saturation on the Node horizontal pod.',
+                            'Saved the document metadata (S3 Object Key, size, uploader) into the relational database.'
                         ]
                     },
                     {
-                        title: 'Sliding-Window Rate Limiting System',
+                        title: 'Role-Restricted Document Download (Pre-Signed URLs)',
                         points: 8,
                         implementation: [
-                            'Built a sliding-window rate limiter in Redis using Lua scripts to block directory harvesting (bots guessing phone numbers).',
-                            'Configured tiered rate limits based on IP and User ID (e.g., max 5 lookups per minute).',
-                            'Emitted security alerts to Splunk when rate limits were breached to notify the SOC (Security Operations Center).'
+                            'Implemented download API logic: Verify the user downloading the risk document actually had "read" access to that specific Guarantee ID.',
+                            'Generated temporary, short-lived (5 min) S3 Pre-signed URLs for authenticated users instead of proxying massive binaries through Node.',
+                            'Logged all document access events to Splunk for internal compliance monitoring.'
                         ]
                     },
                     {
-                        title: 'NPP Central Service Integration',
-                        points: 5,
+                        title: 'ClamAV Malware Scanning Middleware',
+                        points: 3,
                         implementation: [
-                            'Wrote robust HTTP clients with exponential backoff to handle transient network issues with the central NPP addressing service.',
-                            'Masked partial phone numbers and emails in the response to comply with Westpac privacy standards.',
-                            'Added extensive endpoint monitoring using Datadog APM.'
+                            'Integrated a ClamAV daemon using gRPC. Whenever a Banker uploaded a supporting document, it was pushed into a buffer queue.',
+                            'The file was scanned asynchronously for malware before the state of the document was marked `SAFE_FOR_REVIEW`.',
+                            'Blocked Reviewers from downloading documents marked as `PENDING_SCAN`.'
                         ]
                     }
                 ]
             },
             {
                 months: [5, 6, 7, 8],
-                epic: 'Real-Time Payment Initiation (ISO 20022 pacs.008)',
+                epic: 'Complex Locking and Concurrency Management',
                 goals: [
-                    '- Facilitate instant Osko payments via the mobile app.',
-                    '- Translate JSON requests into ISO 20022 XML formats.',
-                    '- Implement rigorous pre-flight validation rules.'
+                    '- Prevent multiple Reviewers from simultaneously acting on the exact same Bank Guarantee.',
+                    '- Implement Pessimistic/Optimistic database locks.',
+                    '- Enhance application stability under high load.'
                 ],
                 tasks: [
                     {
-                        title: 'JSON to ISO 20022 XML Boundary Translation',
-                        points: 5,
-                        implementation: [
-                            'Developed a mapping layer utilizing `xml2js` to transform JSON payloads into strict ISO 20022 pacs.008 XML format.',
-                            'Validated incoming JSON against comprehensive JSON Schemas for missing mandatory fields.',
-                            'Handled character set encoding conversion required by the legacy payments switch.'
-                        ]
-                    },
-                    {
-                        title: 'Pre-flight Payment Validation Logic',
+                        title: 'Reviewer Assignment and Redis Locks',
                         points: 8,
                         implementation: [
-                            'Implemented business logic to verify sufficient funds and check Daily Payment Limits ($10,000 max) before sending the payment.',
-                            'Checked the destination account against the OFAC sanctions list to block illicit transfers.',
-                            'Returned rich error descriptions to the mobile app (e.g., "Insufficient Funds", "Limit Exceeded") rather than generic HTTP 500s.'
+                            'Implemented a "Checkout" feature: When Reviewer 1 opens Bank Guarantee #47, the API sets a distributed Redis lock with a TTL of 15 minutes.',
+                            'If a second Reviewer 1 tries to open Guarantee #47, the API returns a `423 Locked` response indicating "Currently being reviewed by John Doe".',
+                            'Built a background Node cron-job to safely release orphaned locks if a reviewer closed their browser tab without clicking "Save".'
                         ]
                     },
                     {
-                        title: 'Duplicate Payment Detection',
+                        title: 'Optimistic Concurrency Control (ETags)',
                         points: 5,
                         implementation: [
-                            'Generated unique idempotency keys per transaction based on device ID, timestamp, and amount.',
-                            'Stored payment execution hashes in Redis for 24 hours to aggressively reject duplicate payment submissions within milliseconds.',
-                            'Conducted chaos engineering experiments to verify the idempotency layer under extreme network latency.'
+                            'Implemented Optimistic Locking using the `version` column in the database schema.',
+                            'When updating comments or transitioning state, the API checked if the requested `version` matched the database `version`.',
+                            'Prevented the "Lost Update" problem where a Banker\'s save action overwrites a Reviewer\'s simultaneous approval by throwing an Http 412 Precondition Failed.'
+                        ]
+                    },
+                    {
+                        title: 'Caching Common Dictionary/Dropdown Data',
+                        points: 3,
+                        implementation: [
+                            'Implemented Redis caching for static dropdown data used across the Bank Guarantee forms (e.g., "Guarantee Types", "Approved Currency Codes").',
+                            'Reduced load on the PostgreSQL database for highly read, rarely mutated configuration tables.',
+                            'Added immediate cache invalidation whenever a system admin added a new Guarantee Type.'
                         ]
                     }
                 ]
             },
             {
                 months: [9, 10, 11, 12],
-                epic: 'Real-time Fraud Interceptor & Actimize Integration',
+                epic: 'Reporting & Guarantee Generation',
                 goals: [
-                    '- Detect and block scams in real-time.',
-                    '- Asynchronously process payment risk scoring.',
-                    '- Provide operators the ability to lift "Debit Holds".'
+                    '- Automatically assemble PDF legal documents based on approved workflow data.',
+                    '- Generate compliance reports for management.',
+                    '- Export Bank Guarantee data to legacy systems.'
                 ],
                 tasks: [
                     {
-                        title: 'Payment Metadata Event Publisher (Kafka)',
+                        title: 'PDF Generation from Approved Guarantees',
                         points: 5,
                         implementation: [
-                            'Built a Node.js publisher utilizing `kafkajs` to stream payment initiation metadata (IP, Amount, Payee, Device Info) to the Fraud cluster.',
-                            'Ensured high throughput and exactly-once delivery semantics using transactional producers.',
-                            'Handled schema registry evolutions using Avro formats.'
+                            'When a guarantee reached the `COMPLETED` state, a Kafka event triggered a worker service.',
+                            'Utilized `Puppeteer` (or PDFKit) inside Node.js to dynamically generate the official legal Bank Guarantee document based on an HTML template populated with the database payload.',
+                            'Stamped the generated PDF with watermarks and a digital signature hash.'
                         ]
                     },
                     {
-                        title: 'Fraud Async Webhook Consumer & Debit Holds',
+                        title: 'Multi-Role Search and Reporting Aggregation API',
                         points: 8,
                         implementation: [
-                            'Exposed a secure webhook endpoint for the Fraud Engine (Actimize) to push back real-time risk scores.',
-                            'If the score crossed the high-risk threshold, automatically placed a "Debit Hold" block on the underlying transaction record in PostgreSQL.',
-                            'Sent a push notification trigger to the customer to verify the sketchy payment via the Westpac App (2FA step-up).'
+                            'Built robust reporting APIs for management users hitting MongoDB analytical read-replicas.',
+                            'Used the MongoDB Aggregation Pipeline to generate reports like "Average Time Spent in PENDING_R1 Status" and "Total Dollar Value of Guarantees Issued this Month".',
+                            'Secured the API with pagination and query timeouts to prevent heavy analytical queries from degrading the primary API performance.'
                         ]
                     },
                     {
-                        title: 'Operator Override API for Call Center',
-                        points: 5,
+                        title: 'Metrics and APM (Datadog) Instrumentation',
+                        points: 3,
                         implementation: [
-                            'Developed an internal administrative REST API for the Fraud Call Center to manually override and release "Debit Holds".',
-                            'Stored audit trails of which operator released the hold for compliance purposes.',
-                            'Implemented strict Role-Based Access Control (RBAC) ensuring only high-level analysts could use the endpoint.'
+                            'Instrumented all mission-critical workflow transition endpoints thoroughly using Datadog APM tracing.',
+                            'Set up performance alerts if the `Approve` API latency breached 1.5 seconds, specifically monitoring the time taken by the atomic transaction and audit log inserts.',
+                            'Tracked "Invalid State Transition" 400 errors to identify frontend application bugs.'
                         ]
                     }
                 ]
             }
         ]
     },
+    // Leaving Year 3 mostly the same high-level concepts (BFF, read replicas, scaling), 
+    // but tailored to internal workflow optimization.
     3: {
-        dir: 'Year_3_Open_Banking_CDR_and_BFF',
+        dir: 'Year_3_Open_Banking_CDR_and_BFF', // Keeping identical
         topics: [
             {
                 months: [1, 2, 3, 4],
-                epic: 'CDR Account & Transaction APIs (Read-Only)',
+                epic: 'Legacy System Integration & Data Synchronization',
                 goals: [
-                    '- Implement standards mandated by the Australian Data Standards Body.',
-                    '- Serve massive amounts of transaction history efficiently.',
-                    '- Ensure strict uptime and performance SLAs.'
+                    '- Sync approved Bank Guarantees with legacy mainframe ledgers.',
+                    '- Ensure exactly-once message delivery.',
+                    '- Handle transient legacy system failures smoothly.'
                 ],
                 tasks: [
                     {
-                        title: 'Cursor-Based Pagination for Transaction Ledger',
+                        title: 'Mainframe Synchronization Service',
                         points: 8,
                         implementation: [
-                            'Replaced offset-based pagination with high-performance cursor-based pagination to serve accounts with 10,000+ transactions without degrading database performance.',
-                            'Serialized the `last_transaction_id` and `timestamp` into base64 encoded cursor tokens.',
-                            'Optimized PostgreSQL indexes on date and account_id to support complex filtering queries mandated by CDR.'
+                            'Built an Anti-Corruption Layer (microservice) mapping the modern JSON Bank Guarantee payload into fixed-width EBCDIC files required by the legacy Hogan core.',
+                            'Scheduled daily synchronization batch jobs using Node.js `node-cron` fetching all guarantees moved to `COMPLETED` that day.',
+                            'Generated unique correlation IDs to verify end-to-end processing across modern and legacy boundaries.'
                         ]
                     },
                     {
-                        title: 'Data Masking and Transformation Layer',
+                        title: 'Circuit Breakers for Outbound Legacy Calls',
                         points: 5,
                         implementation: [
-                            'Implemented response interceptors to strip out internal bank reference codes and format the output entirely to the open banking DSB specification.',
-                            'Masked standard account numbers (BSB/Account) replacing them with unique masked identifiers as required.',
-                            'Wrote automated contract tests using Postman/Newman to verify DSB schema compliance.'
+                            'Implemented the Circuit Breaker pattern using `opossum` around the SOAP XML calls made to the legacy Customer Information System (CIS).',
+                            'If CIS experienced an outage, the API buffered the approval requests into a RabbitMQ queue for deferred processing, rather than returning HTTP 500s to the Reviewer.',
+                            'Added automated recovery polling algorithms when circuits flipped to a "half-open" state.'
                         ]
                     },
                     {
-                        title: 'High-Availability Database Read Replicas',
-                        points: 3,
+                        title: 'Automated E2E Workflow Testing',
+                        points: 5,
                         implementation: [
-                            'Configured the TypeORM connections to direct all Open Banking read traffic to dedicated read-replicas, isolating analytical load from core banking transactions.',
-                            'Implemented logic to handle replica-lag scenarios and fallback mechanisms.',
-                            'Monitored database connection pools strictly to avoid exhausting max connections during traffic spikes.'
+                            'Wrote extensive Jest and Supertest suites mocking the entire Bank Guarantee lifecycle.',
+                            'Automated contract testing: Submit (Banker) -> Approve (R1) -> Approve (R2) -> Validate Audit Logs -> Ensure PDF Generated.',
+                            'Integrated these heavy E2E suites into the GitHub Actions CI/CD pipeline blocking pull requests if any workflow state constraint failed.'
                         ]
                     }
                 ]
             },
             {
                 months: [5, 6, 7, 8],
-                epic: 'Consent & FAPI (Financial-grade API) Validation',
+                epic: 'Scaling the Application and GraphQL BFF Optimization',
                 goals: [
-                    '- Validate consumer consent strictly before serving data.',
-                    '- Implement highly secure FAPI mutual TLS authentication.',
-                    '- Handle consent revocation scenarios.'
+                    '- Transition the massive internal Dashboard API to GraphQL.',
+                    '- Fix N+1 query problems hurting dashboard loading times.',
+                    '- Serve aggregated stats seamlessly.'
                 ],
                 tasks: [
                     {
-                        title: 'MTLS Header Validation Middleware',
-                        points: 5,
-                        implementation: [
-                            'Developed an Express.js middleware to validate Mutual TLS (mTLS) client certificates injected by the API gateway.',
-                            'Verified the Certificate Authority and ensuring the thumbprint matched the registered third-party data recipient.',
-                            'Logged unauthorized access attempts with high-severity to the SIEM (Security Information and Event Management) system.'
-                        ]
-                    },
-                    {
-                        title: 'OAuth2/OIDC Token Scope & Consent Enforcement',
+                        title: 'GraphQL BFF Implementation (Apollo Server)',
                         points: 8,
                         implementation: [
-                            'Decoded JWT access tokens directly checking for required Open Banking scopes (e.g., `bank:transactions.read`).',
-                            'Queried the "Consent Store" database to verify if the user actively consented to share data with the calling third party.',
-                            'Enforced 12-month consent expiry rules, returning standard HTTP 403 Forbidden with specific DSB error codes if expired.'
+                            'Replaced heavily nested REST API dashboard queries with a GraphQL BFF using Apollo Server.',
+                            'Allowed the Frontend React application to dynamically request Guarantee Details, Associated Audit Logs, and User Profiles via a single network request.',
+                            'Drastically reduced network over-fetching payload from 500kb per request down to 80kb by querying exact schema shapes.'
                         ]
                     },
                     {
-                        title: 'Consent Revocation Webhook Receiver',
+                        title: 'Dataloader for N+1 Query Resolution',
                         points: 5,
                         implementation: [
-                            'Built an endpoint to consume real-time consent revocation events from the identity provider (Ping Identity).',
-                            'Invalidated cached consent records in Redis immediately upon revocation.',
-                            'Ensured in-flight requests involving revoked consent were aborted mid-stream.'
+                            'Identified the classic GraphQL N+1 problem when fetching the User Profile (Name/Email) for every Reviewer assigned to a dashboard list of 100 guarantees.',
+                            'Integrated `dataloader` to batch and deduplicate underlying database queries, collapsing 100 User SQL queries into a single `SELECT * FROM Users WHERE id IN (...)`.',
+                            'Improved dashboard API responsiveness by 60% under peak load.'
+                        ]
+                    },
+                    {
+                        title: 'Read Heavy Performance Tuning',
+                        points: 3,
+                        implementation: [
+                            'Re-architected the `TypeORM` connection pooling to route graphQL queries exclusively to the Postgres Read-Replicas.',
+                            'Analyzed slow query logs and added compound indexes mapping `status` and `assigned_reviewer_id`.',
+                            'Configured Node.js horizontal pod autoscaling (HPA) in Kubernetes based on CPU utilization.'
                         ]
                     }
                 ]
             },
             {
                 months: [9, 10, 11, 12],
-                epic: 'Mobile App BFF (Backend-For-Frontend) Aggregator',
+                epic: 'System Upgrades & Technical Debt Eradication',
                 goals: [
-                    '- Reduce network chatter for the mobile application.',
-                    '- Provide a unified GraphQL/REST interface.',
-                    '- Handle downstream service failures gracefully.'
+                    '- Upgrade major frameworks and dependencies safely.',
+                    '- Enforce deeper security patching.',
+                    '- Ensure zero downtime during internal deployments.'
                 ],
                 tasks: [
                     {
-                        title: 'GraphQL Dashboard Aggregation Service',
+                        title: 'Major Version Node.js and NestJS Upgrades',
                         points: 5,
                         implementation: [
-                            'Implemented a Node.js/Apollo Server layer acting as the BFF for the mobile app.',
-                            'Aggregated data from 5 different backend microservices (Accounts, Loans, Cards, Rewards, Notifications) into a single query.',
-                            'Reduced mobile client overhead by filtering out unnecessary payloads and sending exact requested shapes.'
+                            'Operated a major dependency overhaul moving the monolithic API from Node 14/Express to Node 18/NestJS.',
+                            'Refactored legacy Callback and Promise chains entirely into modern `async/await` patterns across the workflow engine.',
+                            'Replaced deprecated libraries (e.g., swapping `request` for `axios`) ensuring no breaking changes to the frontend contracts.'
                         ]
                     },
                     {
-                        title: 'Promise.allSettled & Graceful Degradation',
-                        points: 8,
+                        title: 'Security Vulnerability Remediation (CVEs)',
+                        points: 5,
                         implementation: [
-                            'Utilized `Promise.allSettled()` to fetch data concurrently instead of sequentially, reducing the dashboard load time from 2s to 600ms.',
-                            'Implemented graceful degradation: If the "Rewards" microservice experienced an outage, the API still returned the Account balances successfully with a "partial data" flag.',
-                            'Implemented Redis caching for relatively static data (like user profile info) to further improve latency.'
+                            'Integrated `npm audit` and Snyk directly into the CI/CD pipeline.',
+                            'Patched critical Cross-Site Scripting (XSS) and SQL Injection vulnerabilities identified in regular penetration testing by the Westpac internal red team.',
+                            'Enforced strict Content-Security-Policy (CSP) and CORS headers entirely via Helmet middleware.'
                         ]
                     },
                     {
-                        title: 'Circuit Breaker Pattern via Resilience4j/Opossum',
+                        title: 'Zero Downtime Deployment Strategy Implementation',
                         points: 5,
                         implementation: [
-                            'Implemented the Circuit Breaker pattern (using `opossum`) on outgoing requests to fragile legacy downstream services.',
-                            'Prevented cascading failures by automatically opening the circuit when the downstream error rate exceeded 50%.',
-                            'Provided automated "half-open" recovery polling and fallback mock responses when circuits were open.'
+                            'Configured Kubernetes Readiness and Liveness probes to support seamless rolling updates.',
+                            'Ensured that in-flight Bank Guarantee workflow approvals (e.g., active Database Transactions) completed within a graceful shutdown window before a Pod was terminated.',
+                            'Documented deployment runbooks minimizing disruption for internal business users.'
                         ]
                     }
                 ]
@@ -363,7 +365,7 @@ const timelineData = {
     }
 };
 
-let globalTaskCounter = 10000;
+let globalTaskCounter = 20000;
 
 function shuffle(array) {
   let currentIndex = array.length,  randomIndex;
@@ -386,9 +388,7 @@ for (let year = 1; year <= 3; year++) {
             for (let week = 1; week <= 4; week++) {
                 const weekFile = path.join(monthDir, `Week_${week.toString().padStart(2, '0')}.md`);
                 
-                // Construct the markdown using the topic data.
-                // We'll randomly select 2-3 tasks from the topic's tasks to simulate work for the week.
-                const numTasks = Math.floor(Math.random() * 2) + 2; // 2 or 3 tasks
+                const numTasks = Math.floor(Math.random() * 2) + 2; 
                 const shuffledTasks = shuffle([...topic.tasks]);
                 const selectedTasks = shuffledTasks.slice(0, numTasks);
                 
@@ -420,10 +420,13 @@ for (let year = 1; year <= 3; year++) {
                 content += `- **Sprint Retrospective:** 1 hour at the end of the 2-week sprint cycle (Discussed what went well and areas for process improvement).\n`;
                 content += `- **Backlog Grooming:** Refined upcoming stories for ${topic.epic}.\n`;
                 
-                fs.writeFileSync(weekFile, content);
+                // Only write the file if it actually exists in the filesystem path
+                if (fs.existsSync(monthDir)) {
+                     fs.writeFileSync(weekFile, content);
+                }
             }
         }
     }
 }
 
-console.log('Successfully updated 144 timeline files with banking-specific features and tasks.');
+console.log('Successfully updated 144 timeline files with Bank Guarantee Application Workflow stories.');
